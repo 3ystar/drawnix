@@ -146,8 +146,48 @@ export const AppToolbar = () => {
         visible={true}
         title={t('general.close')}
         aria-label={t('general.close')}
-        onPointerDown={() => {
+        onPointerDown={async () => {
           setAppMenuOpen(false);
+          // 1) 保存当前画板内容（忽略错误，尽最大努力）
+          try {
+            if (typeof window !== 'undefined') {
+              const id = sessionStorage.getItem('editor-board-id:default');
+              if (id) {
+                try {
+                  await fetch(`/api/boards/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: (board as any).children }),
+                  });
+                } catch (err) {
+                  // ignore save error
+                }
+              }
+            }
+          } catch {}
+          // 2) 返回上一页：优先使用显式 returnTo，其次 history.back，兜底首页
+          try {
+            if (typeof window !== 'undefined') {
+              const returnTo = sessionStorage.getItem('editor-board:returnTo');
+              if (returnTo) {
+                try { sessionStorage.removeItem('editor-board:returnTo'); } catch {}
+                try {
+                  const url = new URL(returnTo, window.location.origin);
+                  if (url.origin === window.location.origin) {
+                    window.location.href = url.pathname + url.search + url.hash;
+                    return;
+                  }
+                } catch {
+                  // fall through
+                }
+              }
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = '/';
+              }
+            }
+          } catch {}
         }}
       />
       {/* 文件名编辑器 */}
