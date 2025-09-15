@@ -7,6 +7,7 @@ import {
   RedoIcon,
   TrashIcon,
   UndoIcon,
+  CloseIcon,
 } from '../../icons';
 import classNames from 'classnames';
 import {
@@ -144,8 +145,8 @@ export const AppToolbar = () => {
         type="icon"
         icon={CloseIcon}
         visible={true}
-        title={t('general.close')}
-        aria-label={t('general.close')}
+        title={'关闭'}
+        aria-label={'关闭'}
         onPointerDown={async () => {
           setAppMenuOpen(false);
           // 1) 保存当前画板内容（忽略错误，尽最大努力）
