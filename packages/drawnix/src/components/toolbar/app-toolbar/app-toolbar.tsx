@@ -31,6 +31,8 @@ const FileNameEditor: React.FC = () => {
   const [title, setTitle] = useState<string>('');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  // 生产环境下 Next.js 配置了 basePath（如 /todo），需要给 API 补齐前缀
+  const basePath = (process.env.NEXT_PUBLIC_BASE_PATH as string) || '/todo';
 
   // 读取当前会话中的画板ID
   useEffect(() => {
@@ -49,7 +51,7 @@ const FileNameEditor: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`/api/boards/${boardId}`, { cache: 'no-store' });
+        const res = await fetch(`${basePath}/api/boards/${boardId}`, { cache: 'no-store' });
         if (!mounted) return;
         if (res.ok) {
           const data = await res.json();
@@ -62,7 +64,7 @@ const FileNameEditor: React.FC = () => {
       }
     })();
     return () => { mounted = false };
-  }, [boardId]);
+  }, [boardId, basePath]);
 
   const save = async (nextTitle: string): Promise<void> => {
     if (!boardId) return;
@@ -70,7 +72,7 @@ const FileNameEditor: React.FC = () => {
     if (trimmed === title) return;
     setLoading(true);
     try {
-      await fetch(`/api/boards/${boardId}`, {
+      await fetch(`${basePath}/api/boards/${boardId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: trimmed }),
@@ -133,6 +135,8 @@ export const AppToolbar = () => {
   const [appMenuOpen, setAppMenuOpen] = useState(false);
   const isUndoDisabled = board.history.undos.length <= 0;
   const isRedoDisabled = board.history.redos.length <= 0;
+  // 生产环境下 Next.js 配置了 basePath（如 /todo），需要给 API 补齐前缀
+  const basePath = (process.env.NEXT_PUBLIC_BASE_PATH as string) || '/todo';
   return (
     <Island
       padding={1}
@@ -155,7 +159,7 @@ export const AppToolbar = () => {
               const id = sessionStorage.getItem('editor-board-id:default');
               if (id) {
                 try {
-                  await fetch(`/api/boards/${id}`, {
+                  await fetch(`${basePath}/api/boards/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: (board as any).children }),
