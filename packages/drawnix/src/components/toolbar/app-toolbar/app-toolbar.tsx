@@ -25,14 +25,16 @@ import { LanguageSwitcherMenu } from './language-switcher-menu';
 import Menu from '../../menu/menu';
 import MenuSeparator from '../../menu/menu-separator';
 import { useI18n } from '../../../i18n';
+import { apiGet, apiPut } from '@/lib/api-client'
 
 const FileNameEditor: React.FC = () => {
   const [boardId, setBoardId] = useState<string | null>(null);
   const [title, setTitle] = useState<string>('');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  // basePath handled by api-client
   // 生产环境下 Next.js 配置了 basePath（如 /todo），需要给 API 补齐前缀
-  const basePath = (process.env.NEXT_PUBLIC_BASE_PATH as string) || '/todo';
+  // const basePath = (process.env.NEXT_PUBLIC_BASE_PATH as string) || '/todo';
 
   // 读取当前会话中的画板ID
   useEffect(() => {
@@ -51,20 +53,17 @@ const FileNameEditor: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch(`${basePath}/api/boards/${boardId}`, { cache: 'no-store' });
+        const data = await apiGet<any>(`/api/boards/${boardId}`, { cache: 'no-store' });
         if (!mounted) return;
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.success) {
-            setTitle(data.data?.title || '未命名画板');
-          }
+        if (data?.success) {
+          setTitle(data.data?.title || '未命名画板');
         }
       } catch (err) {
         // ignore
       }
     })();
     return () => { mounted = false };
-  }, [boardId, basePath]);
+  }, [boardId]);
 
   const save = async (nextTitle: string): Promise<void> => {
     if (!boardId) return;
@@ -72,11 +71,7 @@ const FileNameEditor: React.FC = () => {
     if (trimmed === title) return;
     setLoading(true);
     try {
-      await fetch(`${basePath}/api/boards/${boardId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: trimmed }),
-      });
+      await apiPut(`/api/boards/${boardId}`, { title: trimmed });
       setTitle(trimmed);
     } catch (err) {
       // ignore
@@ -135,8 +130,9 @@ export const AppToolbar = () => {
   const [appMenuOpen, setAppMenuOpen] = useState(false);
   const isUndoDisabled = board.history.undos.length <= 0;
   const isRedoDisabled = board.history.redos.length <= 0;
+  // basePath handled by api-client
   // 生产环境下 Next.js 配置了 basePath（如 /todo），需要给 API 补齐前缀
-  const basePath = (process.env.NEXT_PUBLIC_BASE_PATH as string) || '/todo';
+  // const basePath = (process.env.NEXT_PUBLIC_BASE_PATH as string) || '/todo';
   return (
     <Island
       padding={1}
@@ -145,13 +141,12 @@ export const AppToolbar = () => {
       <Stack.Row gap={1}>
       {/* 关闭并保存画板，返回上一页*/}
       <ToolButton
-        key={0}
-        type="icon"
-        icon={CloseIcon}
-        visible={true}
-        title={'关闭'}
-        aria-label={'关闭'}
-        onPointerDown={async () => {
+         type="icon"
+         icon={CloseIcon}
+         visible={true}
+         title={'关闭'}
+         aria-label={'关闭'}
+         onPointerDown={async () => {
           setAppMenuOpen(false);
           // 1) 保存当前画板内容（忽略错误，尽最大努力）
           try {
@@ -159,10 +154,8 @@ export const AppToolbar = () => {
               const id = sessionStorage.getItem('editor-board-id:default');
               if (id) {
                 try {
-                  await fetch(`${basePath}/api/boards/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: (board as any).children }),
+                  await apiPut(`/api/boards/${id}`, {
+                    content: (board as any).children,
                   });
                 } catch (err) {
                   // ignore save error
@@ -201,13 +194,12 @@ export const AppToolbar = () => {
         <FileNameEditor />
       </div>
         <Popover
-          key={0}
-          sideOffset={12}
-          open={appMenuOpen}
-          onOpenChange={(open) => {
-            setAppMenuOpen(open);
-          }}
-          placement="bottom-start"
+           sideOffset={12}
+           open={appMenuOpen}
+           onOpenChange={(open) => {
+             setAppMenuOpen(open);
+           }}
+           placement="bottom-start"
         >
           <PopoverTrigger asChild>
             <ToolButton
@@ -240,55 +232,51 @@ export const AppToolbar = () => {
         </Popover>
 
         <ToolButton
-          key={1}
-          type="icon"
-          icon={UndoIcon}
-          visible={true}
-          title={t('general.undo')}
-          aria-label={t('general.undo')}
-          onPointerUp={() => {
-            board.undo();
-          }}
-          disabled={isUndoDisabled}
+           type="icon"
+           icon={UndoIcon}
+           visible={true}
+           title={t('general.undo')}
+           aria-label={t('general.undo')}
+           onPointerUp={() => {
+             board.undo();
+           }}
+           disabled={isUndoDisabled}
         />
         <ToolButton
-          key={2}
-          type="icon"
-          icon={RedoIcon}
-          visible={true}
-          title={t('general.redo')}
-          aria-label={t('general.redo')}
-          onPointerUp={() => {
-            board.redo();
-          }}
-          disabled={isRedoDisabled}
+           type="icon"
+           icon={RedoIcon}
+           visible={true}
+           title={t('general.redo')}
+           aria-label={t('general.redo')}
+           onPointerUp={() => {
+             board.redo();
+           }}
+           disabled={isRedoDisabled}
         />
         {selectedElements.length > 0 && (
           <ToolButton
-            className="duplicate"
-            key={3}
-            type="icon"
-            icon={DuplicateIcon}
-            visible={true}
-            title={t('general.duplicate')}
-            aria-label={t('general.duplicate')}
-            onPointerUp={() => {
-              duplicateElements(board);
-            }}
+             className="duplicate"
+             type="icon"
+             icon={DuplicateIcon}
+             visible={true}
+             title={t('general.duplicate')}
+             aria-label={t('general.duplicate')}
+             onPointerUp={() => {
+               duplicateElements(board);
+             }}
           />
         )}
         {selectedElements.length > 0 && (
           <ToolButton
-            className="trash"
-            key={4}
-            type="icon"
-            icon={TrashIcon}
-            visible={true}
-            title={t('general.delete')}
-            aria-label={t('general.delete')}
-            onPointerUp={() => {
-              deleteFragment(board);
-            }}
+             className="trash"
+             type="icon"
+             icon={TrashIcon}
+             visible={true}
+             title={t('general.delete')}
+             aria-label={t('general.delete')}
+             onPointerUp={() => {
+               deleteFragment(board);
+             }}
           />
         )}
       </Stack.Row>
