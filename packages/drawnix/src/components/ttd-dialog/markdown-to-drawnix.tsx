@@ -48,7 +48,7 @@ const MarkdownToDrawnix = () => {
           api: Promise.resolve(module),
         });
       } catch (err) {
-        console.error('Failed to load mermaid library:', err);
+        console.error('Failed to load markdown library:', err);
         setError(new Error(t('dialog.error.loadMermaid')));
       }
     };
